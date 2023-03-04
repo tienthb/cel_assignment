@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  streamlit:
+    image: cel-streamlit
+    container_name: streamlit-svc
+    build:
+      context: .
+      dockerfile: ./src/streamlit_app/Dockerfile
+    ports:
+      - "8501:8501"
+    networks:
+      - bridge_network
+    environment:
+      - "API_HOST=fastapi"
+      - "API_PORT=8000"
+  fastapi:
+    image: cel-fastapi
+    container_name: fastapi-svc
+    build:
+      context: .
+      dockerfile: ./src/fastapi_app/Dockerfile
+    ports:
+      - "8000:8000"
+    networks:
+      - bridge_network
+    
+networks:
+  bridge_network:
+    driver: bridge
