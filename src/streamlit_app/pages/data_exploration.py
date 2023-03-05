@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 import json
 import altair as alt
-import os
+
 
 base_url = st.session_state["BASE_URL"]
 
@@ -17,15 +17,12 @@ st.set_page_config(
 uploaded_file = st.file_uploader("Choose a file")
 if uploaded_file is not None:
     content = uploaded_file.read()
-    if st.button("Process data"):
-        tab1, tab2, tab3 = st.tabs(["Data Stats", "By Outlet", "By Product"])
-        response = requests.post(
-            url=base_url + "/process_data",
-            files={"csv_file": content}
-        )
-        resp = response.json()
-        
-        # with tab2:
+    response = requests.post(
+        url=base_url + "/processor/process_data",
+        files={"csv_file": content}
+    )
+
+    if response.status_code == 200:
         outlets = requests.get(
             url=base_url + "/outlets"
         )
@@ -35,33 +32,63 @@ if uploaded_file is not None:
             outlets["outlets"]
         )
 
-        unique_items = requests.get(
-            url=base_url + f"/outlets/{outlet_id}/items"
+        total_items = requests.get(
+            url=base_url + f"/outlets/{outlet_id}/total_items"
         )
-        st.write(unique_items.json())
-            # "Total Outlets"
-            # st.title(data["Outlet_Identifier"].nunique())
-            # col1, col2 = st.columns(2)
-        
-            # with col1:
-            #     outlet_by_item_type = data.loc[:, ["Item_Identifier", "Outlet_Identifier", "Item_Type"]].drop_duplicates() \
-            #         .groupby(["Outlet_Identifier", "Item_Type"]) \
-            #         .nunique() \
-            #         .reset_index()
-            #     outlet_by_item_type_chart = alt.Chart(outlet_by_item_type).mark_bar().encode(
-            #         x="Outlet_Identifier",
-            #         y="Item_Identifier",
-            #         color="Item_Type"
-            #     )
-            #     st.altair_chart(outlet_by_item_type_chart, use_container_width=True)
 
-            # with col2:
-            #     outlet_by_year = data.loc[:, ["Outlet_Type", "Outlet_Identifier"]].drop_duplicates() \
-            #         .groupby("Outlet_Type") \
-            #         .nunique() \
-            #         .reset_index()                
-            #     outlet_by_year_chart = alt.Chart(outlet_by_year).mark_bar().encode(
-            #         x="Outlet_Type",
-            #         y="Outlet_Identifier"
-            #     )
-            #     st.altair_chart(outlet_by_year_chart, use_container_width=True)
+        total_sales = requests.get(
+            url=base_url + f"/outlets/{outlet_id}/total_sales"
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("Total Items")        
+            st.title(total_items.json()["total_items"])
+
+            count_by_types = requests.get(
+                url=base_url + f"/outlets/{outlet_id}/items/count_by_type"
+            )
+
+            count_by_types_df = pd.DataFrame(json.loads(count_by_types.json()[0]))
+            count_by_types_c = alt.Chart(count_by_types_df).mark_bar().encode(
+                x="Item_Type",
+                y="Item_Identifier"
+            )
+            st.altair_chart(count_by_types_c)
+
+            count_by_fat_content = requests.get(
+                url=base_url + f"/outlets/{outlet_id}/items/count_by_fat_content"
+            )
+
+            count_by_fat_content_df = pd.DataFrame(json.loads(count_by_fat_content.json()[0]))
+            count_by_fat_content_c = alt.Chart(count_by_fat_content_df).mark_bar().encode(
+                y="Item_Fat_Content",
+                x="Item_Identifier"
+            )
+            st.altair_chart(count_by_fat_content_c)
+
+        with col2:        
+            st.markdown("Total Sales")        
+            st.title(total_sales.json()["total_sales"])
+
+            sales_by_types = requests.get(
+                url=base_url + f"/outlets/{outlet_id}/items/sales_by_type"
+            )
+
+            sales_by_types_df = pd.DataFrame(json.loads(sales_by_types.json()[0]))
+            sales_by_types_c = alt.Chart(sales_by_types_df).mark_bar().encode(
+                x="Item_Type",
+                y="Item_Outlet_Sales"
+            )
+            st.altair_chart(sales_by_types_c)
+
+            sales_by_fat_content = requests.get(
+                url=base_url + f"/outlets/{outlet_id}/items/sales_by_fat_content"
+            )
+
+            sales_by_fat_content_df = pd.DataFrame(json.loads(sales_by_fat_content.json()[0]))
+            sales_by_fat_content_c = alt.Chart(sales_by_fat_content_df).mark_bar().encode(
+                y="Item_Fat_Content",
+                x="Item_Outlet_Sales"
+            )
+            st.altair_chart(sales_by_fat_content_c)

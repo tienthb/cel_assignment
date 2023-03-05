@@ -20,6 +20,6 @@ async def process_data(csv_file: UploadFile = File(...)):
     item_weight = data.loc[~data["Item_Weight"].isna(), ["Item_Identifier", "Item_Weight"]].drop_duplicates()
     data = data.merge(item_weight, how="left", on="Item_Identifier").drop("Item_Weight_x", axis=1).rename(columns={"Item_Weight_y":"Item_Weight"})
 
-    resp["data"] = data.to_json()
+    # resp["data"] = data.to_json()
     data.to_csv("./cleaned_data.csv", index=False)
-    return resp
+    return {"status": "success"}
