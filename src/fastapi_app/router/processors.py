@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File
 import pandas as pd
+import numpy as np
 import io
 
 router = APIRouter(
@@ -8,7 +9,7 @@ router = APIRouter(
 )
 
 @router.post("/process_data")
-async def process_data(csv_file: UploadFile = File(...)):
+async def process_data(csv_file: UploadFile = File(...), column_name: str = None):
     resp = {}
     contents = await csv_file.read()
 
@@ -20,6 +21,18 @@ async def process_data(csv_file: UploadFile = File(...)):
     item_weight = data.loc[~data["Item_Weight"].isna(), ["Item_Identifier", "Item_Weight"]].drop_duplicates()
     data = data.merge(item_weight, how="left", on="Item_Identifier").drop("Item_Weight_x", axis=1).rename(columns={"Item_Weight_y":"Item_Weight"})
 
-    # resp["data"] = data.to_json()
-    data.to_csv("./cleaned_data.csv", index=False)
-    return {"status": "success"}
+    q1 = np.percentile(data[column_name], 25)
+    q3 = np.percentile(data[column_name], 75)
+
+    iqr = q3 - q1
+
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+
+    filtered_data = data[(data[column_name] > lower_bound) & (data[column_name] < upper_bound)]
+
+    resp["original_data_size"] = len(data)
+    resp["processed_data_size"] = len(filtered_data)
+    filtered_data.to_csv("./processed_data.csv", index=False)
+    return resp
+

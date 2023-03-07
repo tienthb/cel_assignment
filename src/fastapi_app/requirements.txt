@@ -1,3 +1,4 @@
+ccxt
 fastapi
 yfinance
 uvicorn[standard]

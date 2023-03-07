@@ -1,16 +1,11 @@
-from typing import Union
-from fastapi import FastAPI, File, UploadFile
-import pandas as pd
-import io
-import json
-import uvicorn
+from fastapi import FastAPI
 
-from .router import outlets, processors
+from .router import exchanges, outlets, processors
 
 
 app = FastAPI()
 
 app.include_router(outlets.router)
 app.include_router(processors.router)
-
+app.include_router(exchanges.router)
 
